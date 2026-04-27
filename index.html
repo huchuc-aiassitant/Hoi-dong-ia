@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hội Đồng AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inconsolata:wght@300;400;500&family=Lora:ital,wght@0,400;1,400;1,600&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg:#f5f2eb; --bg2:#ede9e0; --ink:#1a1714; --ink2:#3d3830;
+  --ink3:#7a7268; --ink4:#b0a898; --line:#d8d2c6;
+  --blue:#1a6bff; --bluebg:rgba(26,107,255,0.07);
+  --c0:#1a6bff; --c0b:rgba(26,107,255,0.1);
+  --c1:#c0392b; --c1b:rgba(192,57,43,0.1);
+  --c2:#16a085; --c2b:rgba(22,160,133,0.1);
+  --c3:#8e44ad; --c3b:rgba(142,68,173,0.1);
+}
+body { background:var(--bg); color:var(--ink); font-family:'Lora',Georgia,serif; min-height:100vh; }
+body::before {
+  content:''; position:fixed; inset:0; pointer-events:none;
+  background-image:repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(180,170,155,0.1) 27px,rgba(180,170,155,0.1) 28px);
+}
+
+/* SETUP */
+#setup { position:fixed; inset:0; background:var(--bg); z-index:200; display:flex; align-items:center; justify-content:center; padding:24px; }
+#setup.hide { display:none; }
+.scard { background:#fff; border:1px solid var(--line); border-radius:6px; padding:36px 30px; max-width:420px; width:100%; box-shadow:0 4px 24px rgba(0,0,0,0.07); }
+.s-eye { font-family:'Inconsolata',monospace; font-size:11px; letter-spacing:0.12em; color:var(--ink3); text-transform:uppercase; margin-bottom:10px; }
+.s-h1 { font-family:'Syne',sans-serif; font-size:26px; font-weight:800; line-height:1.15; margin-bottom:14px; }
+.s-h1 em { color:var(--blue); font-style:normal; }
+.s-desc { font-size:13px; color:var(--ink3); line-height:1.75; margin-bottom:20px; }
+.s-desc a { color:var(--blue); }
+.s-step { background:var(--bg2); border-radius:4px; padding:12px 14px; margin-bottom:20px; font-size:12px; line-height:1.9; color:var(--ink2); border-left:3px solid var(--blue); }
+.s-step b { color:var(--ink); font-family:'Syne',sans-serif; }
+.s-label { font-family:'Inconsolata',monospace; font-size:11px; color:var(--ink3); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:7px; display:block; }
+.s-input { width:100%; background:var(--bg); border:1px solid var(--line); border-radius:4px; padding:11px 14px; font-family:'Inconsolata',monospace; font-size:13px; color:var(--ink); outline:none; margin-bottom:14px; transition:border-color .2s; }
+.s-input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(26,107,255,0.08); }
+.s-input::placeholder { color:var(--ink4); }
+.s-btn { width:100%; padding:13px; background:var(--ink); color:var(--bg); border:none; border-radius:4px; font-family:'Syne',sans-serif; font-size:13px; font-weight:700; letter-spacing:0.06em; cursor:pointer; transition:background .2s; }
+.s-btn:hover { background:var(--blue); }
+.s-note { font-size:11px; color:var(--ink4); text-align:center; margin-top:12px; font-style:italic; }
+
+/* HEADER */
+header { padding:16px 24px; border-bottom:1px solid var(--line); background:#fff; display:flex; align-items:center; justify-content:space-between; position:relative; z-index:10; }
+.logo { font-family:'Syne',sans-serif; font-size:18px; font-weight:800; }
+.logo span { color:var(--blue); }
+.model-tag { font-family:'Inconsolata',monospace; font-size:10px; color:var(--blue); background:var(--bluebg); border:1px solid rgba(26,107,255,0.2); padding:3px 9px; border-radius:3px; }
+
+/* MAIN */
+#main { display:none; height:calc(100vh - 53px); flex-direction:column; }
+#main.on { display:flex; }
+
+/* TOPIC BAR */
+.tbar { background:#fff; border-bottom:1px solid var(--line); padding:12px 20px; display:flex; gap:8px; }
+.tinput { flex:1; background:var(--bg); border:1px solid var(--line); border-radius:4px; padding:10px 14px; font-family:'Lora',serif; font-size:14px; color:var(--ink); outline:none; transition:border-color .2s; }
+.tinput:focus { border-color:var(--blue); }
+.tinput::placeholder { color:var(--ink4); font-style:italic; }
+.tgo { padding:10px 18px; background:var(--ink); color:var(--bg); border:none; border-radius:4px; font-family:'Syne',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.08em; cursor:pointer; white-space:nowrap; transition:background .2s; }
+.tgo:hover:not(:disabled) { background:var(--blue); }
+.tgo:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* LAYOUT */
+.layout { flex:1; display:grid; grid-template-columns:180px 1fr; overflow:hidden; }
+
+/* SIDEBAR */
+.sidebar { border-right:1px solid var(--line); background:#fff; padding:20px 12px; overflow-y:auto; }
+.sb-label { font-family:'Inconsolata',monospace; font-size:10px; color:var(--ink4); letter-spacing:0.12em; text-transform:uppercase; padding:0 6px; margin-bottom:14px; }
+.ag { padding:8px 6px; border-radius:3px; margin-bottom:2px; border-left:2px solid transparent; transition:all .25s; }
+.ag.active { background:var(--bg2); }
+.ag-row { display:flex; align-items:center; gap:7px; }
+.ag-ico { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; flex-shrink:0; }
+.ag-name { font-family:'Syne',sans-serif; font-size:12px; font-weight:600; flex:1; }
+.ag-sub { font-family:'Inconsolata',monospace; font-size:10px; color:var(--ink3); padding-left:33px; margin-top:2px; }
+.dot { width:6px; height:6px; border-radius:50%; background:var(--ink4); flex-shrink:0; transition:background .3s; }
+.dot.on { background:var(--blue); animation:blink .7s infinite alternate; }
+.dot.ok { background:var(--c2); }
+@keyframes blink { from{opacity:.3} to{opacity:1} }
+
+/* FEED */
+.feed { overflow-y:auto; padding:28px 32px 48px; display:flex; flex-direction:column; scroll-behavior:smooth; }
+
+/* EMPTY */
+.empty { margin:auto; text-align:center; padding:32px; max-width:380px; }
+.empty-big { font-family:'Syne',sans-serif; font-size:48px; font-weight:800; color:var(--line); margin-bottom:12px; }
+.empty-title { font-family:'Syne',sans-serif; font-size:17px; font-weight:700; color:var(--ink2); margin-bottom:8px; }
+.empty-sub { font-size:13px; color:var(--ink3); line-height:1.7; margin-bottom:18px; }
+.chips { display:flex; flex-wrap:wrap; gap:7px; justify-content:center; }
+.chip { padding:5px 12px; background:var(--bg2); border:1px solid var(--line); border-radius:20px; font-size:12px; font-family:'Inconsolata',monospace; color:var(--ink2); cursor:pointer; transition:all .2s; }
+.chip:hover { background:var(--bluebg); border-color:rgba(26,107,255,.25); color:var(--blue); }
+
+/* FEED TOPIC */
+.ftopic { text-align:center; padding:6px 0 24px; animation:up .4s ease both; opacity:0; }
+.ftopic-text { font-family:'Lora',serif; font-style:italic; font-size:18px; color:var(--ink); line-height:1.4; }
+.ftopic-lbl { font-family:'Inconsolata',monospace; font-size:10px; color:var(--ink4); letter-spacing:0.14em; text-transform:uppercase; margin-top:5px; }
+@keyframes up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+/* MESSAGE */
+.msg { display:flex; gap:14px; padding:18px 0; border-bottom:1px solid var(--line); animation:up .35s ease both; opacity:0; }
+.msg-ava { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; margin-top:2px; }
+.msg-body { flex:1; min-width:0; }
+.msg-meta { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+.msg-name { font-family:'Syne',sans-serif; font-size:12px; font-weight:700; }
+.msg-tag { font-family:'Inconsolata',monospace; font-size:10px; padding:2px 7px; border-radius:2px; letter-spacing:0.07em; text-transform:uppercase; }
+.msg-time { font-family:'Inconsolata',monospace; font-size:10px; color:var(--ink4); margin-left:auto; }
+.msg-text { font-size:14px; line-height:1.8; color:var(--ink2); }
+.msg-text strong { color:var(--ink); font-weight:600; }
+.thinking .msg-text { color:var(--ink4); font-style:italic; display:flex; align-items:center; gap:8px; }
+.dots { display:inline-flex; gap:3px; }
+.dots i { width:4px; height:4px; background:var(--ink4); border-radius:50%; display:inline-block; animation:hop 1s infinite; font-style:normal; }
+.dots i:nth-child(2){animation-delay:.15s} .dots i:nth-child(3){animation-delay:.3s}
+@keyframes hop { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-5px)} }
+
+/* VERDICT */
+.verdict { margin:22px 0; border:1px solid var(--line); border-radius:4px; overflow:hidden; animation:up .4s ease both; opacity:0; }
+.verdict-hdr { background:var(--ink); color:var(--bg); padding:10px 18px; font-family:'Syne',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; }
+.verdict-body { background:#fff; padding:20px; font-size:14px; line-height:1.85; color:var(--ink2); }
+.verdict-body strong { color:var(--ink); font-weight:600; }
+
+/* ERROR */
+.errbox { background:rgba(192,57,43,.06); border:1px solid rgba(192,57,43,.25); border-radius:4px; padding:12px 16px; font-family:'Inconsolata',monospace; font-size:12px; color:#c0392b; margin:12px 0; line-height:1.6; word-break:break-all; }
+
+::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:transparent} ::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
+
+@media(max-width:560px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .feed{padding:18px 16px 40px}
+}
+</style>
+</head>
+<body>
+
+<div id="setup">
+  <div class="scard">
+    <div class="s-eye">Hội Đồng Thảo Luận AI</div>
+    <div class="s-h1">Nhiều AI.<br><em>Một vấn đề.</em></div>
+    <div class="s-step">
+      <b>Lấy key miễn phí:</b><br>
+      1. Vào <a href="https://openrouter.ai/keys" target="_blank" style="color:var(--blue)">openrouter.ai/keys</a> → Sign up<br>
+      2. Nhấn <b>Create Key</b><br>
+      3. Dán key vào ô bên dưới
+    </div>
+    <label class="s-label">OpenRouter API Key</label>
+    <input type="password" id="api-input" class="s-input" placeholder="sk-or-v1-..." />
+    <button class="s-btn" onclick="boot()">Vào Hội Đồng →</button>
+    <p class="s-note">Key lưu trong trình duyệt, không gửi đi đâu ngoài OpenRouter</p>
+  </div>
+</div>
+
+<header>
+  <div class="logo">Hội Đồng <span>AI</span></div>
+  <div class="model-tag">DeepSeek · OpenRouter</div>
+</header>
+
+<div id="main">
+  <div class="tbar">
+    <input type="text" id="topic" class="tinput" placeholder="Nhập vấn đề cần thảo luận..." onkeydown="if(event.key==='Enter')go()" />
+    <button class="tgo" id="gobtn" onclick="go()">THẢO LUẬN</button>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sb-label">Hội đồng</div>
+      <div class="ag" id="ag0">
+        <div class="ag-row">
+          <div class="ag-ico" style="background:var(--c0b);color:var(--c0)">🔬</div>
+          <div class="ag-name" style="color:var(--c0)">Phân Tích</div>
+          <div class="dot" id="dot0"></div>
+        </div>
+        <div class="ag-sub">Dữ liệu & logic</div>
+      </div>
+      <div class="ag" id="ag1">
+        <div class="ag-row">
+          <div class="ag-ico" style="background:var(--c1b);color:var(--c1)">⚠️</div>
+          <div class="ag-name" style="color:var(--c1)">Phản Biện</div>
+          <div class="dot" id="dot1"></div>
+        </div>
+        <div class="ag-sub">Rủi ro & phản biện</div>
+      </div>
+      <div class="ag" id="ag2">
+        <div class="ag-row">
+          <div class="ag-ico" style="background:var(--c2b);color:var(--c2)">💡</div>
+          <div class="ag-name" style="color:var(--c2)">Sáng Tạo</div>
+          <div class="dot" id="dot2"></div>
+        </div>
+        <div class="ag-sub">Ý tưởng & cơ hội</div>
+      </div>
+      <div class="ag" id="ag3">
+        <div class="ag-row">
+          <div class="ag-ico" style="background:var(--c3b);color:var(--c3)">⚖️</div>
+          <div class="ag-name" style="color:var(--c3)">Trọng Tài</div>
+          <div class="dot" id="dot3"></div>
+        </div>
+        <div class="ag-sub">Tổng hợp & kết luận</div>
+      </div>
+    </div>
+    <div class="feed" id="feed">
+      <div class="empty" id="empty">
+        <div class="empty-big">討</div>
+        <div class="empty-title">Bắt đầu thảo luận</div>
+        <p class="empty-sub">Nhập vấn đề bất kỳ. Bốn AI phân tích từ các góc nhìn khác nhau rồi tổng hợp kết luận.</p>
+        <div class="chips">
+          <div class="chip" onclick="pick(this)">Mua nhà hay thuê nhà?</div>
+          <div class="chip" onclick="pick(this)">AI thay thế lập trình viên?</div>
+          <div class="chip" onclick="pick(this)">Startup nên gọi vốn sớm?</div>
+          <div class="chip" onclick="pick(this)">Học đại học còn cần thiết?</div>
+          <div class="chip" onclick="pick(this)">Remote work vs văn phòng?</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var KEY = '', busy = false;
+
+var AGENTS = [
+  { id:0, name:'Nhà Phân Tích', emoji:'🔬', role:'PHÂN TÍCH',
+    color:'var(--c0)', bg:'var(--c0b)', tag:'rgba(26,107,255,0.12)',
+    sys:'Bạn là Nhà Phân Tích trong hội đồng AI. Phân tích dựa trên dữ liệu và logic. Dùng **bold** cho điểm mấu chốt. Trả lời tiếng Việt, 4-5 câu.' },
+  { id:1, name:'Người Phản Biện', emoji:'⚠️', role:'PHẢN BIỆN',
+    color:'var(--c1)', bg:'var(--c1b)', tag:'rgba(192,57,43,0.12)',
+    sys:'Bạn là Người Phản Biện trong hội đồng AI. Chỉ ra rủi ro và mặt trái. Dùng **bold** cho cảnh báo quan trọng. Trả lời tiếng Việt, 4-5 câu.' },
+  { id:2, name:'Người Sáng Tạo', emoji:'💡', role:'SÁNG TẠO',
+    color:'var(--c2)', bg:'var(--c2b)', tag:'rgba(22,160,133,0.12)',
+    sys:'Bạn là Người Sáng Tạo trong hội đồng AI. Đề xuất góc nhìn mới và giải pháp sáng tạo. Dùng **bold** cho ý tưởng đột phá. Trả lời tiếng Việt, 4-5 câu.' }
+];
+
+var MOD = {
+  id:3, name:'Trọng Tài', emoji:'⚖️', role:'KẾT LUẬN',
+  color:'var(--c3)', bg:'var(--c3b)', tag:'rgba(142,68,173,0.12)',
+  sys:'Bạn là Trọng Tài. Tổng hợp các quan điểm, đưa ra kết luận cân bằng và 2-3 hành động cụ thể. Dùng **bold** cho điểm quan trọng nhất. Trả lời tiếng Việt, 6-8 câu.'
+};
+
+function boot() {
+  var k = document.getElementById('api-input').value.trim();
+  if (!k) { alert('Vui lòng nhập API key'); return; }
+  KEY = k;
+  document.getElementById('setup').classList.add('hide');
+  document.getElementById('main').classList.add('on');
+}
+
+function pick(el) { document.getElementById('topic').value = el.textContent; }
+
+function setDot(id, state) {
+  document.getElementById('dot'+id).className = 'dot'+(state==='on'?' on':state==='ok'?' ok':'');
+  document.getElementById('ag'+id).className = 'ag'+(state?' active':'');
+}
+
+function now() { return new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}); }
+
+function md(t) { return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+
+function addMsg(agent, content, isThinking) {
+  var feed = document.getElementById('feed');
+  var em = document.getElementById('empty');
+  if (em) em.remove();
+  var d = document.createElement('div');
+  d.className = 'msg'+(isThinking?' thinking':'');
+  if (isThinking) d.id = 'th'+agent.id;
+  var body = isThinking ? 'đang phân tích... <div class="dots"><i></i><i></i><i></i></div>' : md(content);
+  d.innerHTML = '<div class="msg-ava" style="background:'+agent.bg+';color:'+agent.color+'">'+agent.emoji+'</div>'+
+    '<div class="msg-body"><div class="msg-meta">'+
+    '<span class="msg-name" style="color:'+agent.color+'">'+agent.name+'</span>'+
+    '<span class="msg-tag" style="background:'+agent.tag+';color:'+agent.color+'">'+agent.role+'</span>'+
+    '<span class="msg-time">'+now()+'</span></div>'+
+    '<div class="msg-text">'+body+'</div></div>';
+  feed.appendChild(d);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function rmTh(id) { var el=document.getElementById('th'+id); if(el) el.remove(); }
+
+function showErr(msg) {
+  var feed = document.getElementById('feed');
+  var d = document.createElement('div');
+  d.className = 'errbox';
+  d.textContent = '❌ '+msg;
+  feed.appendChild(d);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function sleep(ms) { return new Promise(function(r){ setTimeout(r,ms); }); }
+
+async function ask(sys, user) {
+  var r;
+  try {
+    r = await fetch('/api/chat', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+KEY },
+      body: JSON.stringify({
+        model:'deepseek/deepseek-chat-v3-0324',
+        max_tokens:500,
+        messages:[{role:'system',content:sys},{role:'user',content:user}]
+      })
+    });
+  } catch(e) { throw new Error('Không kết nối được server: '+e.message); }
+
+  var raw = await r.text();
+  if (!r.ok) {
+    var msg = 'HTTP '+r.status;
+    try { msg = JSON.parse(raw).error.message || msg; } catch(_){}
+    throw new Error(msg);
+  }
+  var data;
+  try { data = JSON.parse(raw); } catch(_) { throw new Error('Phản hồi lỗi: '+raw.slice(0,100)); }
+  if (!data.choices || !data.choices[0]) throw new Error('Không có dữ liệu trả về');
+  return data.choices[0].message.content.trim();
+}
+
+async function go() {
+  if (busy) return;
+  var topic = document.getElementById('topic').value.trim();
+  if (!topic) { document.getElementById('topic').focus(); return; }
+  busy = true;
+  var btn = document.getElementById('gobtn');
+  btn.disabled = true; btn.textContent = 'ĐANG THẢO LUẬN...';
+  [0,1,2,3].forEach(function(i){ setDot(i,''); });
+  var feed = document.getElementById('feed');
+  feed.innerHTML = '';
+  var th = document.createElement('div');
+  th.className = 'ftopic';
+  th.innerHTML = '<div class="ftopic-text">"'+topic+'"</div><div class="ftopic-lbl">Chủ đề thảo luận</div>';
+  feed.appendChild(th);
+  var collected = [];
+  try {
+    for (var i=0; i<AGENTS.length; i++) {
+      var ag = AGENTS[i];
+      setDot(ag.id,'on'); addMsg(ag,'',true); await sleep(300);
+      var reply = await ask(ag.sys, 'Vấn đề: "'+topic+'"');
+      collected.push('['+ag.name+']: '+reply);
+      rmTh(ag.id); addMsg(ag,reply,false); setDot(ag.id,'ok');
+      await sleep(400);
+    }
+    setDot(3,'on'); addMsg(MOD,'',true);
+    var ctx = 'Chủ đề: "'+topic+'"\n\n'+collected.join('\n\n');
+    var verdict = await ask(MOD.sys, ctx);
+    rmTh(3); setDot(3,'ok');
+    var vb = document.createElement('div');
+    vb.className = 'verdict';
+    vb.innerHTML = '<div class="verdict-hdr">⚖️ KẾT LUẬN TỔNG HỢP</div><div class="verdict-body">'+md(verdict)+'</div>';
+    feed.appendChild(vb);
+    feed.scrollTop = feed.scrollHeight;
+  } catch(err) {
+    [0,1,2,3].forEach(function(i){ rmTh(i); setDot(i,''); });
+    showErr(err.message);
+  }
+  busy=false; btn.disabled=false; btn.textContent='THẢO LUẬN';
+}
+
+document.getElementById('api-input').addEventListener('keydown', function(e){ if(e.key==='Enter') boot(); });
+</script>
+</body>
+</html>
